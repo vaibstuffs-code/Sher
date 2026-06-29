@@ -1,0 +1,126 @@
+// Sher — Prisma schema
+// Postgres data model for the journaling, watchlist, and signal-history
+// features. Market data itself is NOT stored here long-term (it's fetched
+// live from the licensed provider and cached in Redis) — this schema only
+// persists user-generated data: journal entries, watchlists, signal logs.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MarketMode {
+  LIVE
+  OTC
+}
+
+enum SignalType {
+  BUY
+  SELL
+  WAIT
+}
+
+enum JournalResult {
+  WIN
+  LOSS
+  BREAKEVEN
+  PENDING
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  passwordHash String
+  displayName  String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  journalEntries JournalEntry[]
+  watchlistItems WatchlistItem[]
+  signalLogs     SignalLog[]
+  alertRules     AlertRule[]
+
+  @@map("users")
+}
+
+model JournalEntry {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date        DateTime
+  pair        String
+  marketMode  MarketMode    @default(LIVE)
+  direction   SignalType
+  entryPrice  Float?
+  exitPrice   Float?
+  stake       Float?
+  result      JournalResult @default(PENDING)
+  profit      Float?
+  confidence  Float?
+  durationSec Int?
+  notes       String?
+  emotion     String?
+  mistakes    String?
+  screenshotUrl String?
+  indicatorSummary Json?
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId, date])
+  @@index([userId, pair])
+  @@map("journal_entries")
+}
+
+model WatchlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pair      String
+  marketMode MarketMode @default(LIVE)
+  isFavorite Boolean  @default(false)
+  addedAt   DateTime @default(now())
+
+  @@unique([userId, pair, marketMode])
+  @@map("watchlist_items")
+}
+
+model SignalLog {
+  id          String     @id @default(cuid())
+  userId      String?
+  user        User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  pair        String
+  marketMode  MarketMode @default(LIVE)
+  timeframe   String
+  targetCandleTime DateTime
+  signal      SignalType
+  confidence  Float
+  reasoning   Json
+  actualOutcome SignalType?
+  wasCorrect  Boolean?
+
+  createdAt   DateTime   @default(now())
+
+  @@index([pair, timeframe, createdAt])
+  @@index([userId, createdAt])
+  @@map("signal_logs")
+}
+
+model AlertRule {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pair        String
+  confidenceThreshold Float
+  channel     String   @default("desktop") // desktop | sound | popup
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("alert_rules")
+}
