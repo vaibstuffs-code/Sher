@@ -19,6 +19,11 @@ export const TIMEFRAME_LABELS: Record<SupportedTimeframe, string> = {
   "10m": "10 Minutes", "15m": "15 Minutes", "30m": "30 Minutes", "1h": "1 Hour",
 };
 
+export const TIMEFRAME_SECONDS: Record<SupportedTimeframe, number> = {
+  "1m": 60, "2m": 120, "3m": 180, "5m": 300,
+  "10m": 600, "15m": 900, "30m": 1800, "1h": 3600,
+};
+
 export interface Candle {
   time: number;
   open: number;

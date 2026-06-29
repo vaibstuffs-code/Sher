@@ -42,10 +42,13 @@ export function useJournalStats() {
   });
 }
 
-export function useScanner(timeframe: SupportedTimeframe) {
+export function useScanner(timeframe: SupportedTimeframe, enabled: boolean) {
   return useQuery({
     queryKey: ["scanner", timeframe],
     queryFn: () => fetchScanner(timeframe),
-    refetchInterval: 30000, // heavier batch call across all pairs — refresh less often than a single-pair signal
+    enabled, // only runs when explicitly triggered — this call scans all 18 pairs
+             // in throttled batches (to respect Twelve Data's free-tier rate limit)
+             // and takes several seconds; it shouldn't block the main dashboard load.
+    staleTime: 60000, // once run, treat as fresh for a minute rather than instantly refetching
   });
 }

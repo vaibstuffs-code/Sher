@@ -6,6 +6,7 @@ import { PulseStrip } from "@/components/layout/PulseStrip";
 import { MarketStatusBar } from "@/components/dashboard/MarketStatusBar";
 import { SelectorBar } from "@/components/dashboard/SelectorBar";
 import { SignalPanel } from "@/components/dashboard/SignalPanel";
+import { NextCandlePanel } from "@/components/dashboard/NextCandlePanel";
 import { ReasoningPanel } from "@/components/dashboard/ReasoningPanel";
 import { StrongSetupsPanel } from "@/components/dashboard/StrongSetupsPanel";
 import { PriceChart } from "@/components/charts/PriceChart";
@@ -41,6 +42,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
             <div className="flex flex-col gap-4">
               <SignalPanel pair={pair} result={signal ?? null} isLoading={signalLoading} />
+              <NextCandlePanel signal={signal ?? null} timeframe={timeframe} />
             </div>
 
             <div className="flex flex-col gap-4">

@@ -5,7 +5,7 @@ import { Panel } from "@/components/ui/Panel";
 import { SignalBadge } from "@/components/ui/SignalBadge";
 import { useScanner } from "@/hooks/useMarketData";
 import { SupportedTimeframe } from "@/types/market.types";
-import { Info } from "lucide-react";
+import { Info, Search } from "lucide-react";
 
 interface StrongSetupsPanelProps {
   timeframe: SupportedTimeframe;
@@ -14,7 +14,8 @@ interface StrongSetupsPanelProps {
 
 export function StrongSetupsPanel({ timeframe, onSelectPair }: StrongSetupsPanelProps) {
   const [threshold, setThreshold] = useState(85);
-  const { data: scanner, isLoading } = useScanner(timeframe);
+  const [hasScanned, setHasScanned] = useState(false);
+  const { data: scanner, isLoading, isFetching, refetch } = useScanner(timeframe, hasScanned);
 
   const strongSetups = (scanner ?? [])
     .filter((s): s is typeof s & { result: NonNullable<typeof s.result> } =>
@@ -22,19 +23,33 @@ export function StrongSetupsPanel({ timeframe, onSelectPair }: StrongSetupsPanel
     )
     .sort((a, b) => b.result.convictionPct - a.result.convictionPct);
 
+  const handleScan = () => {
+    if (!hasScanned) setHasScanned(true);
+    else refetch();
+  };
+
   return (
     <Panel
       eyebrow="Scanner"
       title="Strong setups"
       right={
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-text-tertiary">min conviction</span>
-          <input
-            type="range" min={50} max={97} value={threshold}
-            onChange={(e) => setThreshold(Number(e.target.value))}
-            className="w-20 accent-accent-indigo"
-          />
-          <span className="w-9 font-mono text-xs text-accent-cyan">{threshold}%</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-text-tertiary">min conviction</span>
+            <input
+              type="range" min={50} max={97} value={threshold}
+              onChange={(e) => setThreshold(Number(e.target.value))}
+              className="w-20 accent-accent-indigo"
+            />
+            <span className="w-9 font-mono text-xs text-accent-cyan">{threshold}%</span>
+          </div>
+          <button
+            onClick={handleScan}
+            disabled={isLoading || isFetching}
+            className="flex items-center gap-1.5 rounded-lg bg-accent-indigo px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+          >
+            <Search size={13} /> {isLoading || isFetching ? "Scanning…" : "Scan pairs"}
+          </button>
         </div>
       }
     >
@@ -42,12 +57,17 @@ export function StrongSetupsPanel({ timeframe, onSelectPair }: StrongSetupsPanel
         <Info size={13} className="mt-0.5 flex-shrink-0 text-accent-indigo" />
         <span>
           <span className="text-text-primary">Conviction</span>, not accuracy — how strongly indicators currently
-          agree, not a measured win rate. For real accuracy by pair, see the Journal&apos;s Analytics tab once you&apos;ve logged trades.
+          agree, not a measured win rate. Scanning checks all 18 pairs and takes a few seconds, by design, to stay
+          within the market data provider&apos;s free-tier limits.
         </span>
       </div>
 
-      {isLoading ? (
-        <div className="py-8 text-center text-sm text-text-tertiary">Scanning pairs…</div>
+      {!hasScanned ? (
+        <div className="py-8 text-center text-sm text-text-tertiary">
+          Click &quot;Scan pairs&quot; to check all pairs for strong trending setups.
+        </div>
+      ) : isLoading || isFetching ? (
+        <div className="py-8 text-center text-sm text-text-tertiary">Scanning pairs, this takes a few seconds…</div>
       ) : strongSetups.length === 0 ? (
         <div className="py-8 text-center text-sm text-text-tertiary">
           No pairs are both trending and above {threshold}% conviction right now.
