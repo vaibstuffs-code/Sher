@@ -8,6 +8,7 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { MarketDataService, MarketDataError } from "../services/marketData.service";
 import { computeSignal, summarizeMultiTimeframe, DEFAULT_WEIGHTS, DEFAULT_SMART_FILTERS } from "../services/signal.service";
+import { runBacktest } from "../services/backtest.service";
 import { getMarketStatus } from "../utils/istTime.util";
 import { SUPPORTED_PAIRS, SUPPORTED_TIMEFRAMES, SupportedPair, SupportedTimeframe } from "../types/market.types";
 import { signalLogger, logger } from "../utils/logger.util";
@@ -85,6 +86,22 @@ export function createMarketRoutes(marketData: MarketDataService): Router {
         return { pair, result: computeSignal(candles, DEFAULT_WEIGHTS, DEFAULT_SMART_FILTERS), error: null as string | null };
       });
       res.json(results);
+    } catch (err) {
+      handleRouteError(err, res);
+    }
+  });
+
+  router.get("/backtest", async (req: Request, res: Response) => {
+    try {
+      const pair = pairSchema.parse(req.query.pair) as SupportedPair;
+      const timeframe = timeframeSchema.parse(req.query.timeframe) as SupportedTimeframe;
+      const holdCandles = req.query.holdCandles ? Math.max(1, parseInt(String(req.query.holdCandles), 10)) : 5;
+      // Twelve Data's free tier caps how much history is practically fetchable
+      // in one call; 1000 candles is a reasonable ceiling for a meaningful
+      // (if not huge) sample without hammering the rate limit.
+      const candles = await marketData.getCandles(pair, timeframe, 1000);
+      const result = runBacktest(candles, { holdCandles, warmupCandles: 60 });
+      res.json(result);
     } catch (err) {
       handleRouteError(err, res);
     }

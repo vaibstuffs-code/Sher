@@ -46,6 +46,36 @@ export async function fetchScanner(timeframe: SupportedTimeframe) {
   return data;
 }
 
+export interface BacktestTrade {
+  index: number;
+  signal: "BUY" | "SELL";
+  convictionPct: number;
+  entryPrice: number;
+  exitPrice: number;
+  outcome: "WIN" | "LOSS" | "BREAKEVEN";
+  pctMove: number;
+}
+
+export interface BacktestResult {
+  totalCandles: number;
+  totalSignalsGenerated: number;
+  totalTrades: number;
+  wins: number;
+  losses: number;
+  breakevens: number;
+  winRatePct: number;
+  averageWinPct: number;
+  averageLossPct: number;
+  byConvictionBucket: Record<string, { trades: number; winRatePct: number }>;
+  trades: BacktestTrade[];
+  warnings: string[];
+}
+
+export async function fetchBacktest(pair: SupportedPair, timeframe: SupportedTimeframe, holdCandles = 5) {
+  const { data } = await apiClient.get<BacktestResult>("/backtest", { params: { pair, timeframe, holdCandles } });
+  return data;
+}
+
 // ---- Journal ----
 
 export async function fetchJournalEntries(params?: { pair?: string; from?: string; to?: string }) {

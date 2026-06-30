@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MarketStatusBar } from "@/components/dashboard/MarketStatusBar";
 import { Panel } from "@/components/ui/Panel";
+import { BacktestPanel } from "@/components/dashboard/BacktestPanel";
 import clsx from "clsx";
 
 const INDICATOR_LABELS: Record<string, string> = {
@@ -130,6 +131,10 @@ export default function SettingsPage() {
                 </p>
               </Panel>
             </div>
+          </div>
+
+          <div className="mt-4">
+            <BacktestPanel />
           </div>
         </main>
       </div>
