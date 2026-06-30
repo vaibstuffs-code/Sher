@@ -5,12 +5,30 @@ import { toIST, isMarketOpen, getSessionLabel, formatISTClock } from "@/lib/istT
 import clsx from "clsx";
 
 export function MarketStatusBar() {
-  const [now, setNow] = useState(new Date());
+  // Starting from `null` (not `new Date()`) avoids a hydration mismatch:
+  // the server renders this component once at build/request time, and the
+  // browser would otherwise immediately compute a different `new Date()`
+  // a few milliseconds later, which React flags as a server/client
+  // mismatch. Rendering a stable placeholder until after mount sidesteps
+  // this entirely — the real clock only starts ticking client-side.
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
+    setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  if (!now) {
+    return (
+      <div className="flex items-center gap-4 border-b border-base-border bg-base-raised px-5 py-2.5 text-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-text-tertiary">IST</span>
+          <span className="font-mono font-medium text-text-primary">--:--:--</span>
+        </div>
+      </div>
+    );
+  }
 
   const ist = toIST(now);
   const open = isMarketOpen(ist);

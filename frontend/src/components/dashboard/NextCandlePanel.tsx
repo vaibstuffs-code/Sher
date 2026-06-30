@@ -12,12 +12,23 @@ interface NextCandlePanelProps {
 }
 
 export function NextCandlePanel({ signal, timeframe }: NextCandlePanelProps) {
-  const [now, setNow] = useState(new Date());
+  // Same fix as MarketStatusBar: avoid a server/client hydration mismatch
+  // by not computing time-dependent values until after the client mounts.
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
+    setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  if (!now) {
+    return (
+      <Panel eyebrow="Next candle" title="Loading…">
+        <div className="font-mono text-2xl font-bold text-text-tertiary">--:--</div>
+      </Panel>
+    );
+  }
 
   const ist = toIST(now);
   const tfSeconds = TIMEFRAME_SECONDS[timeframe];
